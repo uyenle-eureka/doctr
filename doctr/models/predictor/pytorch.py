@@ -71,7 +71,9 @@ class OCRPredictor(nn.Module, _OCRPredictor):
             pages = [rotate_image(page, -angle, expand=True) for page, angle in zip(pages, origin_page_orientations)]
 
         # Localize text elements
-        loc_preds = self.det_predictor(pages, **kwargs)
+        loc_preds, out_maps = self.det_predictor(pages, return_maps=True, **kwargs)
+        loc_preds = [list(loc_pred.values())[0] for loc_pred in loc_preds]
+
         # Check whether crop mode should be switched to channels first
         channels_last = len(pages) == 0 or isinstance(pages[0], np.ndarray)
 
