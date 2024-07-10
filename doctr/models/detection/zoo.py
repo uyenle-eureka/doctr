@@ -15,10 +15,10 @@ __all__ = ["detection_predictor"]
 
 
 if is_tf_available():
-    ARCHS = ['db_resnet50', 'db_mobilenet_v3_large', 'linknet_resnet18', 'linknet_resnet18_rotation']
+    ARCHS = ['db_resnet50', 'db_mobilenet_v3_large', 'linknet_resnet18', 'linknet_resnet18_rotation', 'fast_tiny', 'fast_small', 'fast_base']
     ROT_ARCHS = ['linknet_resnet18_rotation']
 elif is_torch_available():
-    ARCHS = ['db_resnet34', 'db_resnet50', 'db_mobilenet_v3_large', 'linknet_resnet18', 'db_resnet50_rotation']
+    ARCHS = ['db_resnet34', 'db_resnet50', 'db_mobilenet_v3_large', 'linknet_resnet18', 'db_resnet50_rotation', 'fast_tiny', 'fast_small', 'fast_base']
     ROT_ARCHS = ['db_resnet50_rotation']
 
 
@@ -29,16 +29,23 @@ def _predictor(
     **kwargs: Any
 ) -> DetectionPredictor:
 
-    if arch not in ARCHS:
-        raise ValueError(f"unknown architecture '{arch}'")
+    if isinstance(arch, str):
+        if arch not in ARCHS:
+            raise ValueError(f"unknown architecture '{arch}'")
 
-    if arch not in ROT_ARCHS and not assume_straight_pages:
-        raise AssertionError("You are trying to use a model trained on straight pages while not assuming"
-                             " your pages are straight. If you have only straight documents, don't pass"
-                             f" assume_straight_pages=False, otherwise you should use one of these archs: {ROT_ARCHS}")
+        _model = detection.__dict__[arch](
+            pretrained=pretrained,
+            pretrained_backbone=kwargs.get("pretrained_backbone", True),
+            assume_straight_pages=assume_straight_pages,
+        )
+    else:
+        if not isinstance(arch, (detection.DBNet, detection.LinkNet, detection.FAST)):
+            raise ValueError(f"unknown architecture: {type(arch)}")
+
+        _model = arch
+        _model.assume_straight_pages = assume_straight_pages
 
     # Detection
-    _model = detection.__dict__[arch](pretrained=pretrained, assume_straight_pages=assume_straight_pages)
     kwargs['mean'] = kwargs.get('mean', _model.cfg['mean'])
     kwargs['std'] = kwargs.get('std', _model.cfg['std'])
     kwargs['batch_size'] = kwargs.get('batch_size', 1)
