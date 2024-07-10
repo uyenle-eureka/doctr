@@ -19,10 +19,20 @@ ARCHS = ['crnn_vgg16_bn', 'crnn_mobilenet_v3_small', 'crnn_mobilenet_v3_large', 
 
 def _predictor(arch: str, pretrained: bool, **kwargs: Any) -> RecognitionPredictor:
 
-    if arch not in ARCHS:
-        raise ValueError(f"unknown architecture '{arch}'")
+    if isinstance(arch, str):
+        if arch not in ARCHS:
+            raise ValueError(f"unknown architecture '{arch}'")
 
-    _model = recognition.__dict__[arch](pretrained=pretrained)
+        _model = recognition.__dict__[arch](
+            pretrained=pretrained, pretrained_backbone=kwargs.get("pretrained_backbone", True)
+        )
+    else:
+        if not isinstance(
+            arch, (recognition.CRNN, recognition.SAR, recognition.MASTER)
+        ):
+            raise ValueError(f"unknown architecture: {type(arch)}")
+        _model = arch
+
     kwargs['mean'] = kwargs.get('mean', _model.cfg['mean'])
     kwargs['std'] = kwargs.get('std', _model.cfg['std'])
     kwargs['batch_size'] = kwargs.get('batch_size', 32)
